@@ -1,12 +1,11 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { getAnalyticsOverview, getAnalyticsDistribution } from '../api/analytics.js';
+import { getAnalyticsOverview} from '../api/analytics.js';
 
 const AnalyticsContext = createContext(null);
 
 export const AnalyticsProvider = ({ children }) => {
   const [overview, setOverview] = useState(null);
-  const [distribution, setDistribution] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -19,17 +18,10 @@ export const AnalyticsProvider = ({ children }) => {
           console.warn('Overview analytics error:', err);
           return null;
         }),
-        getAnalyticsDistribution().catch(err => {
-          console.warn('Distribution analytics error:', err);
-          return [];
-        }),
       ]);
 
       const overviewData = overviewRes?.overview || overviewRes?.data || overviewRes;
-      const distData = Array.isArray(distRes) ? distRes : distRes?.distribution || distRes?.data || [];
-
       setOverview(overviewData);
-      setDistribution(distData);
     } catch (err) {
       setError(err.message || 'Failed to load analytics');
       toast.error('Failed to load analytics data');
@@ -40,7 +32,6 @@ export const AnalyticsProvider = ({ children }) => {
 
   const value = {
     overview,
-    distribution,
     loading,
     error,
     fetchAnalytics,

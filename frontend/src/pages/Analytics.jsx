@@ -9,13 +9,15 @@ import { useAnalytics } from "../context/AnalyticsContext.jsx";
 const CHART_COLORS = ["#DC2626", "#06B6D4", "#FCA5A5", "#A5F3FC", "#818CF8", "#F59E0B"];
 
 export default function Analytics() {
-  const { overview, distribution, loading, error, fetchAnalytics } = useAnalytics();
+  const { overview, loading, error, fetchAnalytics } = useAnalytics();
+  
 
   useEffect(() => {
     fetchAnalytics();
   }, [fetchAnalytics]);
+  console.log(overview);
 
-  const totalStudyTime = overview?.totalStudyHours !== undefined ? `${overview.totalStudyHours} hrs` : "0 hrs";
+  const totalStudyTime = overview?.totalStudyTime !== undefined ? `${overview.totalStudyTime} hrs`:"0";
   const topicsCount = overview?.topicsStudied !== undefined ? `${overview.topicsStudied}` : "0";
   const quizAccuracy = overview?.quizAccuracy !== undefined ? `${overview.quizAccuracy}%` : "0%";
   const studyStreak = overview?.studyStreak !== undefined ? `${overview.studyStreak} Days` : "0 Days";
@@ -57,10 +59,12 @@ export default function Analytics() {
     },
   ];
 
-  const graphData = Array.isArray(distribution) && distribution.length > 0
-    ? distribution.map((item, idx) => ({
-        name: item.track || item.name || item._id || `Track ${idx + 1}`,
-        value: item.hours !== undefined ? item.hours : (item.value || 0),
+ const graphData =
+  Array.isArray(overview?.studyDistribution) &&
+  overview.studyDistribution.length > 0
+    ? overview.studyDistribution.map((item, idx) => ({
+        name: item.track,
+        value: item.studyTime, // or item.percentage depending on what the graph should display
         color: CHART_COLORS[idx % CHART_COLORS.length],
       }))
     : [

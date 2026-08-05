@@ -1,8 +1,30 @@
 import { BookOpen, LayoutDashboard, Settings, LogOut, BarChart2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import {useState,useEffect} from "react"
+import { useAuth } from "../../context/AuthContext.jsx";
 
 
 export function Sidebar({ currentPage,children }) {
+   const { user} = useAuth();
+  const [formState, setFormState] = useState({
+      username: "",
+      email: "",
+    });
+
+  useEffect(() => {
+      if (user) {
+        setFormState({
+          username: user.fullName || user.username || "",
+          email: user.email || "",
+          bio: user.bio || "",
+        });
+      }
+    }, [user]);
+  
+
+
+
+
     const navigate=useNavigate();
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -117,10 +139,10 @@ export function Sidebar({ currentPage,children }) {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              John Doe
+              {formState.username}
             </div>
             <div style={{ fontSize: 12, color: "#6B7280", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              john@example.com
+              {formState.email}
             </div>
           </div>
           <button
