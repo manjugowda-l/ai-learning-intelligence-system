@@ -22,11 +22,23 @@ _PROMPT = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            """You are an expert summarizer.
+            """You are an expert technical summarizer.
 
-Summarize the supplied learning material into exactly ten concise key points and one subtopic.
-The URL content is the primary source. Supplemental session content may add extra context or details.
-Return structured output only.""",
+Your task is to generate a high-quality study summary from the provided learning material.
+
+Guidelines:
+- Use the webpage content as the primary source whenever available.
+- Use the supplemental session content to enrich the summary with additional context, examples, or explanations.
+- Produce exactly 10 detailed, information-rich key points.
+- Each key point should be self-contained, descriptive, and capture the most important concepts, definitions, algorithms, workflows, best practices, advantages, limitations, or implementation details wherever applicable.
+- Do not generate short phrases or headings. Every key point should be 2–4 complete sentences explaining the concept clearly.
+- Preserve technical terminology, code-related concepts, and important examples.
+- Remove duplicate information while ensuring no important concept is omitted.
+- Infer logical connections between the webpage and supplemental content when they discuss the same topic.
+- Generate a concise and specific subtopic that best represents the overall learning material.
+- Do not include introductory or concluding statements.
+- Return structured output only matching the required schema.
+""",
         ),
         (
             "human",
@@ -41,7 +53,6 @@ Supplemental session content:
         ),
     ]
 )
-
 
 _REDUCE_PROMPT = ChatPromptTemplate.from_messages(
     [
@@ -89,22 +100,38 @@ def _chunk_text(content: str, chunk_size: int = 12000, overlap: int = 500) -> li
 
 
 def summarize_web_content(url: str, supplemental_content: str = "") -> WebContentSummary:
-    raw_content = fetch_url_content(url)
-    page_data = json.loads(raw_content)
-    webpage_content = _clean_text(page_data.get("content", ""))
+    page_data = {
+        "url": url,
+        "title": "",
+        "content": "",
+    }
+
+    webpage_content = ""
     enriched_content = _clean_text(supplemental_content)
+
+    try:
+        raw_content = fetch_url_content(url)
+        page_data = json.loads(raw_content)
+        webpage_content = _clean_text(page_data.get("content", ""))
+    except Exception:
+        webpage_content = ""
+
+    if webpage_content and enriched_content:
+        combined_content = (
+            f"{webpage_content}\n\nAdditional session context:\n{enriched_content}"
+        )
+    elif webpage_content:
+        combined_content = webpage_content
+    elif enriched_content:
+        combined_content = enriched_content
+    else:
+        raise ValueError(
+            "Unable to summarize because neither webpage content nor supplemental content is available."
+        )
 
     llm = _build_model().with_structured_output(WebContentSummary)
     chain = _PROMPT | llm
     reduce_chain = _REDUCE_PROMPT | llm
-
-    combined_content = webpage_content
-    if enriched_content:
-        combined_content = (
-            f"{webpage_content}\n\nAdditional session context:\n{enriched_content}"
-            if webpage_content
-            else enriched_content
-        )
 
     content_chunks = _chunk_text(combined_content)
 
@@ -113,23 +140,23 @@ def summarize_web_content(url: str, supplemental_content: str = "") -> WebConten
             {
                 "url": page_data.get("url", url),
                 "title": page_data.get("title", ""),
-                "content": webpage_content,
-                "supplemental_content": enriched_content,
+                "content": combined_content,
+                "supplemental_content": "",
             }
         )
 
     partial_summaries: list[str] = []
+
     for index, chunk in enumerate(content_chunks, start=1):
         chunk_summary = chain.invoke(
             {
                 "url": page_data.get("url", url),
                 "title": page_data.get("title", ""),
                 "content": chunk,
-                "supplemental_content": (
-                    f"Chunk {index} of {len(content_chunks)} from combined webpage and session context."
-                ),
+                "supplemental_content": "",
             }
         )
+
         partial_summaries.append(
             "\n".join(
                 [
