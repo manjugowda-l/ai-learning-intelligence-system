@@ -27,48 +27,65 @@ export default function ExtensionPrompt() {
   };
 
   const handleConnectExtension = () => {
-    setIsConnecting(true);
+  setIsConnecting(true);
+
   const EXTENSION_ID = import.meta.env.VITE_EXTENSION_ID;
 
-    // Broadcast token via postMessage for content scripts to pick up
-    window.postMessage({ type: "AILIS_CONNECT_EXTENSION", token }, "*");
+  if (!EXTENSION_ID) {
+    toast.error("Extension ID is not configured.");
+    setIsConnecting(false);
+    return;
+  }
 
-    // Check for chrome runtime availability if extension is installed
-    if (window.chrome && window.chrome.runtime && window.chrome.runtime.sendMessage) {
-      try {
-        window.chrome.runtime.sendMessage(
-          EXTENSION_ID,
+  if (!token) {
+    toast.error("You are not logged in.");
+    setIsConnecting(false);
+    return;
+  }
+
+  if (
+    !window.chrome ||
+    !window.chrome.runtime ||
+    !window.chrome.runtime.sendMessage
+  ) {
+    toast.error("Chrome extension is not installed.");
+    setIsConnecting(false);
+    return;
+  }
+
+  window.chrome.runtime.sendMessage(
+    EXTENSION_ID,
     {
-        action: "SET_TOKEN",
-        token
+      action: "SET_TOKEN",
+      token: token,
     },
     (response) => {
-        if (response?.success) {
-            localStorage.setItem("extension_connected", "true");
-            setStep(3);
-            toast.success("Extension connected successfully!");
-        } else {
-            toast.error("Failed to connect extension.");
-        }
+      if (chrome.runtime.lastError) {
+        console.error(
+          "Extension connection error:",
+          chrome.runtime.lastError.message
+        );
 
+        toast.error("Extension not installed or unavailable.");
         setIsConnecting(false);
-    }
-);
-      } catch (err) {
-  console.error(err);
-  toast.error("Extension not installed or unavailable.");
-  setIsConnecting(false);
-}
-    }
+        return;
+      }
 
-    // Fallback simulation for smooth UX
-    //setTimeout(() => {
-    //  localStorage.setItem("extension_connected", "true");
-    //  setStep(3);
-    //  toast.success("Extension connected! Activity tracking is now active.");
-    //  setIsConnecting(false);
-    //}, 1200);
-  };
+      if (response?.success) {
+        localStorage.setItem("extension_connected", "true");
+        setStep(3);
+
+        toast.success(
+          "Extension connected successfully!"
+        );
+      } else {
+        toast.error("Failed to connect extension.");
+      }
+
+      setIsConnecting(false);
+    }
+  );
+};
 
   const handleDisconnect = () => {
     localStorage.removeItem("extension_connected");
@@ -133,7 +150,10 @@ export default function ExtensionPrompt() {
           {step === 1 && (
             <div className="flex items-center gap-3 w-full sm:w-auto">
               <button
-                onClick={() => setStep(2)}
+                onClick={() => {
+                  window.location.href = "/ailis-extension.zip";
+                  setStep(2);
+                }}
                 className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-red-700 transition"
               >
                 <Download size={16} />

@@ -252,11 +252,20 @@ chrome.runtime.onMessageExternal.addListener(
 
                 await saveAuthToken(message.token);
 
+                console.log(
+                    "✅ Extension connected successfully"
+                );
+
                 sendResponse({
                     success: true
                 });
 
             } catch (error) {
+
+                console.error(
+                    "❌ Failed to connect extension:",
+                    error
+                );
 
                 sendResponse({
                     success: false,
@@ -264,6 +273,13 @@ chrome.runtime.onMessageExternal.addListener(
                 });
 
             }
+
+        } else {
+
+            sendResponse({
+                success: false,
+                error: "Unknown action"
+            });
 
         }
 

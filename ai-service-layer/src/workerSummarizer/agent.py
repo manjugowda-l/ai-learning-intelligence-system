@@ -13,7 +13,7 @@ def _build_model() -> ChatGroq:
 
     return ChatGroq(
         groq_api_key=settings.GROK_API_KEY,
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         temperature=0,
     )
 

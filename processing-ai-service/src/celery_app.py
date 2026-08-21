@@ -17,4 +17,11 @@ celery_app.conf.update(
     accept_content=["json"],
     timezone="UTC",
     enable_utc=True,
+
+    task_default_queue="processing",
+    task_routes={
+        "src.tasks.processing_task.process_learning_task": {
+            "queue": "processing",
+        },
+    },
 )
