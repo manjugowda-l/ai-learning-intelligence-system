@@ -9,6 +9,7 @@ const {
     getTracks,
     getTopics,
     getTopicTimeline,
+    createTopic,
 } = require("../controllers/dashboardController");
 
 /*
@@ -24,6 +25,12 @@ router.post(
     "/tracks",
     protect,
     createTrack
+);
+
+router.post(
+    "/tracks/:trackId/topics",
+    protect,
+    createTopic
 );
 
 /*
