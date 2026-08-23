@@ -76,9 +76,28 @@ const getTopicTimeline = async (req, res) => {
     }
 };
 
+const createTopic = async (req, res) => {
+    try {
+        const topic =
+            await dashboardService.addTopicToTrack(
+                req.user.id,
+                req.params.trackId,
+                req.body.topicName
+            );
+
+        return res.status(201).json(topic);
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message,
+        });
+    }
+};
+
 module.exports = {
     createTrack,
     getTracks,
     getTopics,
     getTopicTimeline,
+    createTopic,
 };

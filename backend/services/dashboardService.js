@@ -1,5 +1,59 @@
 const Dashboard = require("../models/Dashboard");
 const Activity = require("../models/Activity");
+
+/*
+Normalize names before comparing them.
+
+Examples:
+
+"Computer Networks"
+→ "computer networks"
+
+"Computer-Networks"
+→ "computer networks"
+
+"Computer  Networks"
+→ "computer networks"
+*/
+const normalizeName = (value) => {
+    return String(value || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[-_&]+/g, " ")
+        .replace(/\s+/g, " ");
+};
+
+/*
+Small controlled alias map.
+
+Only add aliases when we are confident
+that they represent the same concept.
+*/
+const NAME_ALIASES = {
+    "computer networking":
+        "computer networks",
+
+    "computer network":
+        "computer networks",
+
+    "data structures and algorithms":
+        "data structures and algorithms",
+
+    "data structures algorithms":
+        "data structures and algorithms",
+
+    "osi models":
+        "osi model",
+};
+
+/*
+Returns the canonical comparison value.
+*/
+const canonicalName = (value) => {
+    const normalized = normalizeName(value);
+
+    return NAME_ALIASES[normalized] || normalized;
+};
 /*
 Create dashboard if it does not exist
 */
@@ -27,8 +81,8 @@ const createManualTrack = async (userId, trackName) => {
 
     const existingTrack = dashboard.tracks.find(
         (track) =>
-            track.name.toLowerCase() ===
-            trackName.toLowerCase()
+            canonicalName(track.name) ===
+            canonicalName(trackName)
     );
 
     if (existingTrack) {
@@ -228,8 +282,8 @@ const addTopicToTrack = async (
 
     const existingTopic = track.topics.find(
         (topic) =>
-            topic.name.toLowerCase() ===
-            topicName.toLowerCase()
+            canonicalName(topic.name) ===
+            canonicalName(topicName)
     );
 
     if (existingTopic) {
@@ -238,6 +292,7 @@ const addTopicToTrack = async (
 
     track.topics.push({
         name: topicName,
+        isManaul : true,
         activities: [],
     });
 
@@ -350,16 +405,21 @@ const integrateClassification = async (
     /*
     STEP 1:
     Find AI/manual track with same name.
+
+    Manual tracks are preferred automatically
+    because they are already present in the dashboard.
     */
+
     let track = dashboard.tracks.find(
         (track) =>
-            track.name.toLowerCase() ===
-            classification.track.toLowerCase()
+            canonicalName(track.name) ===
+            canonicalName(classification.track)
     );
 
     /*
     STEP 2:
-    Create track if it doesn't exist.
+    If no matching Track exists,
+    create an AI-generated Track.
     */
     if (!track) {
         dashboard.tracks.push({
@@ -376,7 +436,7 @@ const integrateClassification = async (
 
     /*
     STEP 3:
-    Find topic inside track.
+    Find an existing Topic inside the matched Track.
     */
     let topic = track.topics.find(
         (topic) =>
@@ -385,12 +445,14 @@ const integrateClassification = async (
     );
 
     /*
-    STEP 4:
-    Create topic if needed.
+    STEP 4
+    If Topic does not exist,
+    create it.
     */
     if (!topic) {
         track.topics.push({
             name: classification.topic,
+            isManual:false,
             activities: [],
             lastActive: new Date(),
         });
@@ -423,6 +485,10 @@ const integrateClassification = async (
         });
     }
 
+    /*
+    STEP 6
+    Update last active time.
+    */
     topic.lastActive = new Date();
 
     await dashboard.save();

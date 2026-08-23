@@ -39,6 +39,11 @@ const TopicSchema = new mongoose.Schema(
             trim: true,
         },
 
+        isManual: {
+            type: Boolean,
+            default: false,
+        },
+
         lastActive: {
             type: Date,
             default: Date.now,
