@@ -20,39 +20,195 @@ const normalizeName = (value) => {
         .toLowerCase()
         .trim()
         .replace(/[-_&]+/g, " ")
+        .replace(/[^\w\s]/g, " ")
         .replace(/\s+/g, " ");
 };
 
 /*
-Small controlled alias map.
+Normalize individual words so that common
+variations such as:
 
-Only add aliases when we are confident
-that they represent the same concept.
+network
+networks
+networking
+
+can be compared more reliably.
+
+This is intentionally conservative.
 */
-const NAME_ALIASES = {
-    "computer networking":
-        "computer networks",
+const normalizeToken = (token) => {
+    let word = token;
 
-    "computer network":
-        "computer networks",
+    if (word.length > 5 && word.endsWith("ing")) {
+        word = word.slice(0, -3);
+    }
 
-    "data structures and algorithms":
-        "data structures and algorithms",
+    if (word.length > 4 && word.endsWith("ies")) {
+        word = word.slice(0, -3) + "y";
+    } else if (
+        word.length > 4 &&
+        word.endsWith("s") &&
+        !word.endsWith("ss")
+    ) {
+        word = word.slice(0, -1);
+    }
 
-    "data structures algorithms":
-        "data structures and algorithms",
+    return word;
+};
 
-    "osi models":
-        "osi model",
+const getTokens = (value) => {
+    return normalizeName(value)
+        .split(" ")
+        .filter(Boolean)
+        .map(normalizeToken);
+};
+
+const getNormalizedTokenSet = (value) => {
+    return new Set(getTokens(value));
 };
 
 /*
-Returns the canonical comparison value.
-*/
-const canonicalName = (value) => {
-    const normalized = normalizeName(value);
+Simple Levenshtein distance.
 
-    return NAME_ALIASES[normalized] || normalized;
+Used only as an additional signal,
+not as the only matching rule.
+*/
+const levenshteinDistance = (a, b) => {
+    const rows = a.length + 1;
+    const cols = b.length + 1;
+
+    const matrix = Array.from(
+        { length: rows },
+        () => Array(cols).fill(0)
+    );
+
+    for (let i = 0; i < rows; i++) {
+        matrix[i][0] = i;
+    }
+
+    for (let j = 0; j < cols; j++) {
+        matrix[0][j] = j;
+    }
+
+    for (let i = 1; i < rows; i++) {
+        for (let j = 1; j < cols; j++) {
+            const cost =
+                a[i - 1] === b[j - 1] ? 0 : 1;
+
+            matrix[i][j] = Math.min(
+                matrix[i - 1][j] + 1,
+                matrix[i][j - 1] + 1,
+                matrix[i - 1][j - 1] + cost
+            );
+        }
+    }
+
+    return matrix[rows - 1][cols - 1];
+};
+
+/*
+Returns a value between 0 and 1.
+
+1   = identical
+0   = completely different
+*/
+const stringSimilarity = (a, b) => {
+    const left = normalizeName(a);
+    const right = normalizeName(b);
+
+    if (!left || !right) {
+        return 0;
+    }
+
+    if (left === right) {
+        return 1;
+    }
+
+    const distance =
+        levenshteinDistance(left, right);
+
+    return (
+        1 -
+        distance /
+            Math.max(left.length, right.length)
+    );
+};
+
+/*
+Token similarity.
+
+Example:
+
+Computer Networking
+→ computer, network
+
+Computer Networks
+→ computer, network
+
+Similarity = 1
+*/
+const tokenSimilarity = (a, b) => {
+    const left = getNormalizedTokenSet(a);
+    const right = getNormalizedTokenSet(b);
+
+    if (!left.size || !right.size) {
+        return 0;
+    }
+
+    let intersection = 0;
+
+    for (const token of left) {
+        if (right.has(token)) {
+            intersection++;
+        }
+    }
+
+    const union = new Set([
+        ...left,
+        ...right,
+    ]).size;
+
+    return intersection / union;
+};
+
+/*
+Final matching decision.
+
+Exact normalized match:
+100% confidence.
+
+Otherwise we combine:
+- token similarity
+- string similarity
+
+A high threshold prevents unrelated
+topics from being merged accidentally.
+*/
+const namesMatch = (first, second) => {
+    const normalizedFirst =
+        normalizeName(first);
+
+    const normalizedSecond =
+        normalizeName(second);
+
+    if (
+        normalizedFirst &&
+        normalizedFirst === normalizedSecond
+    ) {
+        return true;
+    }
+
+    const tokenScore =
+        tokenSimilarity(first, second);
+
+    const stringScore =
+        stringSimilarity(first, second);
+
+    const score =
+        tokenScore * 0.7 +
+        stringScore * 0.3;
+
+    return score >= 0.85;
 };
 /*
 Create dashboard if it does not exist
@@ -81,8 +237,7 @@ const createManualTrack = async (userId, trackName) => {
 
     const existingTrack = dashboard.tracks.find(
         (track) =>
-            canonicalName(track.name) ===
-            canonicalName(trackName)
+            namesMatch(track.name, trackName)
     );
 
     if (existingTrack) {
@@ -158,6 +313,8 @@ const getTopicsInTrack = async (
         id: topic._id,
 
         name: topic.name,
+
+        isManual: topic.isManual,
 
         activityCount:
             topic.activities.length,
@@ -280,20 +437,24 @@ const addTopicToTrack = async (
         throw new Error("Track not found");
     }
 
-    const existingTopic = track.topics.find(
-        (topic) =>
-            canonicalName(topic.name) ===
-            canonicalName(topicName)
-    );
+    const existingTopic =
+        track.topics.find(
+            (topic) =>
+                namesMatch(
+                    topic.name,
+                    topicName
+                )
+        );
 
     if (existingTopic) {
-        return existingTopic;
+        throw new Error("Topic already exists");
     }
 
     track.topics.push({
-        name: topicName,
-        isManaul : true,
+        name: topicName.trim(),
+        isManual: true,
         activities: [],
+        lastActive: null,
     });
 
     await dashboard.save();
@@ -353,13 +514,15 @@ const getOrCreateAITrack = async (
 
     let track = dashboard.tracks.find(
         (track) =>
-            track.name.toLowerCase() ===
-            trackName.toLowerCase()
+            namesMatch(
+                track.name,
+                trackName
+            )
     );
 
     if (!track) {
         dashboard.tracks.push({
-            name: trackName,
+            name: trackName.trim(),
             isManual: false,
             topics: [],
         });
@@ -404,26 +567,35 @@ const integrateClassification = async (
 
     /*
     STEP 1:
-    Find AI/manual track with same name.
+    Find an existing track.
 
-    Manual tracks are preferred automatically
-    because they are already present in the dashboard.
+    namesMatch() handles:
+    - case differences
+    - spaces
+    - hyphens
+    - underscores
+    - singular/plural
+    - common word-form differences
+    - small spelling differences
     */
 
     let track = dashboard.tracks.find(
-        (track) =>
-            canonicalName(track.name) ===
-            canonicalName(classification.track)
+        (existingTrack) =>
+            namesMatch(
+                existingTrack.name,
+                classification.track
+            )
     );
 
     /*
     STEP 2:
-    If no matching Track exists,
-    create an AI-generated Track.
+    If no existing track matches,
+    create a new AI track.
     */
+
     if (!track) {
         dashboard.tracks.push({
-            name: classification.track,
+            name: classification.track.trim(),
             isManual: false,
             topics: [],
         });
@@ -436,24 +608,28 @@ const integrateClassification = async (
 
     /*
     STEP 3:
-    Find an existing Topic inside the matched Track.
+    Search for the topic ONLY inside
+    the matched track.
     */
+
     let topic = track.topics.find(
-        (topic) =>
-            topic.name.toLowerCase() ===
-            classification.topic.toLowerCase()
+        (existingTopic) =>
+            namesMatch(
+                existingTopic.name,
+                classification.topic
+            )
     );
 
     /*
-    STEP 4
-    If Topic does not exist,
-    create it.
+    STEP 4:
+    If the topic doesn't exist,
+    create an AI topic.
     */
-   
+
     if (!topic) {
         track.topics.push({
-            name: classification.topic,
-            isManual:false,
+            name: classification.topic.trim(),
+            isManual: false,
             activities: [],
             lastActive: new Date(),
         });
@@ -466,11 +642,10 @@ const integrateClassification = async (
 
     /*
     STEP 5:
-    Prevent duplicate activity linking.
-
-    Important because callbacks/manual sync
-    can potentially run more than once.
+    Prevent the same activity from
+    being linked more than once.
     */
+
     const alreadyLinked =
         topic.activities.some(
             (item) =>
@@ -487,9 +662,11 @@ const integrateClassification = async (
     }
 
     /*
-    STEP 6
-    Update last active time.
+    STEP 6:
+    Every time an activity is classified
+    into this topic, update lastActive.
     */
+
     topic.lastActive = new Date();
 
     await dashboard.save();
