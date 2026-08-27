@@ -18,7 +18,6 @@ export async function apiFetch(endpoint, options = {}) {
   };
 
   const response = await fetch(`${BASE_URL}${endpoint}`, config);
-  console.log(response)
 
   let data = null;
   const contentType = response.headers.get('content-type');

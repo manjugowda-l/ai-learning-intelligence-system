@@ -8,16 +8,13 @@ import { useDashboard } from "../context/DashboardContext.jsx";
 
 export default function Summary() {
   const { activityId } = useParams();
-  const { summary, summaryLoading, summaryError, fetchSummary, clearSummaryPoll } = useDashboard();
+  const { summary, summaryLoading, summaryError, fetchSummary } = useDashboard();
 
   useEffect(() => {
     if (activityId) {
       fetchSummary(activityId);
     }
-    return () => {
-      clearSummaryPoll();
-    };
-  }, [activityId, fetchSummary, clearSummaryPoll]);
+  }, [activityId, fetchSummary]);
 
   const handleRetry = () => {
     fetchSummary(activityId, true);
@@ -25,6 +22,18 @@ export default function Summary() {
 
   const keyPoints = summary?.keyPoints || summary?.sections || [];
   const status = summary?.status || (summaryLoading ? "PROCESSING" : "IDLE");
+
+  // Dynamic date, topic name, title, and reading time estimation
+  const summaryDate = summary?.generatedAt || summary?.updatedAt || summary?.activityDate || summary?.createdAt;
+  const topicName = summary?.activityTopic || "Activity";
+  const title = summary?.activityTitle || (summary?.activityTopic ? `${summary.activityTopic} Summary` : "Activity Summary");
+
+  const totalWords = keyPoints.reduce((acc, curr) => {
+    const text = typeof curr === "string" ? curr : `${curr.title || ""} ${curr.content || curr.text || ""}`;
+    return acc + text.split(/\s+/).filter(Boolean).length;
+  }, 0);
+  const estimatedMinutes = Math.max(1, Math.ceil(totalWords / 150));
+  const readTime = `${estimatedMinutes} min read`;
 
   return (
     <div className="p-10">
@@ -35,14 +44,14 @@ export default function Summary() {
         </Link>
         <ChevronRight size={14} className="text-gray-400" />
 
-        <span className="text-gray-500">Activity</span>
+        <span className="text-gray-500">{topicName}</span>
         <ChevronRight size={14} className="text-gray-400" />
 
         <span className="font-medium text-gray-900">Summary</span>
       </div>
 
       <div className="max-w-5xl mx-auto">
-        <Header topicName="Activity Summary" />
+        <Header topicName={topicName} date={summaryDate} readTime={readTime} title={title} />
 
         {/* Status: PROCESSING / LOADING */}
         {(status === "PROCESSING" || (summaryLoading && status !== "COMPLETED")) && (

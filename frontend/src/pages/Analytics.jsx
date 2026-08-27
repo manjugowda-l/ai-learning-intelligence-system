@@ -15,7 +15,6 @@ export default function Analytics() {
   useEffect(() => {
     fetchAnalytics();
   }, [fetchAnalytics]);
-  console.log(overview);
 
   const totalStudyTime = overview?.totalStudyTime !== undefined ? `${overview.totalStudyTime} hrs`:"0";
   const topicsCount = overview?.topicsStudied !== undefined ? `${overview.topicsStudied}` : "0";

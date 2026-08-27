@@ -24,7 +24,6 @@ export default function Dashboard() {
   }, [fetchTracks]);
 
   const handleAddTrack = async (trackName) => {
-    console.log(trackName);
     await createNewTrack(trackName);
   };
 

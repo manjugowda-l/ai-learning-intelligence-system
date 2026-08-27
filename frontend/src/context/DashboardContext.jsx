@@ -1,8 +1,20 @@
-import React, { createContext, useContext, useState, useRef, useCallback } from 'react';
-import toast from 'react-hot-toast';
-import { getTracks, createTrack, getTopics, getTimeline } from '../api/dashboard.js';
-import { getSummary, generateSummary } from '../api/summary.js';
-import { getQuiz, generateQuiz, submitQuiz } from '../api/quiz.js';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useRef,
+  useCallback,
+} from "react";
+import toast from "react-hot-toast";
+import {
+  getTracks,
+  createTrack,
+  getTopics,
+  createTopic,
+  getTimeline,
+} from "../api/dashboard.js";
+import { getSummary, generateSummary } from "../api/summary.js";
+import { getQuiz, generateQuiz, submitQuiz } from "../api/quiz.js";
 
 const DashboardContext = createContext(null);
 
@@ -37,19 +49,19 @@ export const DashboardProvider = ({ children }) => {
   const summaryPollTimer = useRef(null);
   const quizPollTimer = useRef(null);
 
-  const clearSummaryPoll = () => {
+  const clearSummaryPoll = useCallback(() => {
     if (summaryPollTimer.current) {
       clearTimeout(summaryPollTimer.current);
       summaryPollTimer.current = null;
     }
-  };
+  }, []);
 
-  const clearQuizPoll = () => {
+  const clearQuizPoll = useCallback(() => {
     if (quizPollTimer.current) {
       clearTimeout(quizPollTimer.current);
       quizPollTimer.current = null;
     }
-  };
+  }, []);
 
   // --- Track Actions ---
   const fetchTracks = useCallback(async () => {
@@ -57,31 +69,31 @@ export const DashboardProvider = ({ children }) => {
     setTracksError(null);
     try {
       const res = await getTracks();
-      const tracksData = Array.isArray(res) ? res : res.tracks || res.data || [];
+      const tracksData = Array.isArray(res)
+        ? res
+        : res.tracks || res.data || [];
       setTracks(tracksData);
       return tracksData;
     } catch (err) {
-      setTracksError(err.message || 'Failed to load tracks');
-      toast.error('Failed to load learning tracks');
+      setTracksError(err.message || "Failed to load tracks");
+      toast.error("Failed to load learning tracks");
       return [];
     } finally {
       setTracksLoading(false);
     }
   }, []);
 
-  const createNewTrack = async (name, topicId = null) => {
+  const createNewTrack = useCallback(async (name, topicId = null) => {
     try {
       const res = await createTrack(name, topicId);
-      console.log(res);
-      toast.success('New track created!');
+      toast.success("New track created!");
       await fetchTracks();
       return res;
     } catch (err) {
-      console.log(err);
-      toast.error(err.message || 'Failed to create track');
+      toast.error(err.message || "Failed to create track");
       throw err;
     }
-  };
+  }, [fetchTracks]);
 
   // --- Topic Actions ---
   const fetchTopics = useCallback(async (trackId) => {
@@ -91,17 +103,31 @@ export const DashboardProvider = ({ children }) => {
     setTopicsError(null);
     try {
       const res = await getTopics(trackId);
-      const topicsData = Array.isArray(res) ? res : res.topics || res.data || [];
+      const topicsData = Array.isArray(res)
+        ? res
+        : res.topics || res.data || [];
       setTopics(topicsData);
       return topicsData;
     } catch (err) {
-      setTopicsError(err.message || 'Failed to load topics');
-      toast.error('Failed to load topics');
+      setTopicsError(err.message || "Failed to load topics");
+      toast.error("Failed to load topics");
       return [];
     } finally {
       setTopicsLoading(false);
     }
   }, []);
+
+  const createNewTopic = useCallback(async (trackId, topicName) => {
+    try {
+      const res = await createTopic(trackId, topicName);
+      toast.success("Topic created successfully!");
+      await fetchTopics(trackId);
+      return res;
+    } catch (err) {
+      toast.error(err.message || "Failed to create topic");
+      throw err;
+    }
+  }, [fetchTopics]);
 
   // --- Timeline Actions ---
   const fetchTimeline = useCallback(async (topicId) => {
@@ -115,15 +141,15 @@ export const DashboardProvider = ({ children }) => {
       setTimeline(timelineData);
       return timelineData;
     } catch (err) {
-      setTimelineError(err.message || 'Failed to load timeline');
-      toast.error('Failed to load timeline activities');
+      setTimelineError(err.message || "Failed to load timeline");
+      toast.error("Failed to load timeline activities");
       return null;
     } finally {
       setTimelineLoading(false);
     }
   }, []);
 
-  // --- Summary & Async Polling Flow ---
+  // --- Summary Flow (Single direct fetch with loader, no polling) ---
   const fetchSummary = useCallback(async (activityId, retry = false) => {
     if (!activityId) return;
     setSelectedActivityId(activityId);
@@ -131,67 +157,35 @@ export const DashboardProvider = ({ children }) => {
     setSummaryLoading(true);
     setSummaryError(null);
 
-    const poll = async (attempts = 0) => {
-      if (attempts > 40) { // Max ~100 seconds timeout
-        setSummaryError('Summary generation timed out. Please try again.');
-        setSummaryLoading(false);
-        return;
-      }
-      try {
-        const res = await getSummary(activityId);
-        const summaryData = res.summary || res.data || res;
-        setSummary(summaryData);
-
-        if (summaryData?.status === 'COMPLETED') {
-          setSummaryLoading(false);
-          clearSummaryPoll();
-        } else if (summaryData?.status === 'FAILED') {
-          setSummaryError(summaryData?.error || 'Summary generation failed');
-          setSummaryLoading(false);
-          clearSummaryPoll();
-        } else {
-          // Status is PROCESSING or still pending
-          summaryPollTimer.current = setTimeout(() => poll(attempts + 1), 2500);
-        }
-      } catch (err) {
-        setSummaryError(err.message);
-        setSummaryLoading(false);
-        clearSummaryPoll();
-      }
-    };
-
     try {
-      let initialRes = await getSummary(activityId);
-      let summaryData = initialRes.summary || initialRes.data || initialRes;
+      let res = await getSummary(activityId);
+      let summaryData = res?.summary || res?.data || res;
 
-      if (!summaryData || summaryData.status === 'NOT_STARTED' || retry) {
-        // Trigger generation asynchronously
+      if (!summaryData || summaryData.status === "NOT_STARTED" || retry) {
+        // Trigger generation asynchronously if needed
         await generateSummary(activityId);
-        setSummary({ status: 'PROCESSING', keyPoints: [] });
-        // Start polling
-        summaryPollTimer.current = setTimeout(() => poll(0), 2500);
-      } else if (summaryData.status === 'PROCESSING') {
-        setSummary(summaryData);
-        summaryPollTimer.current = setTimeout(() => poll(0), 2500);
-      } else {
-        setSummary(summaryData);
-        setSummaryLoading(false);
+        res = await getSummary(activityId);
+        summaryData = res?.summary || res?.data || res;
       }
+
+      setSummary(summaryData);
+      return summaryData;
     } catch (err) {
-      // If 404 or missing, attempt generate
       if (err.status === 404) {
         try {
           await generateSummary(activityId);
-          setSummary({ status: 'PROCESSING', keyPoints: [] });
-          summaryPollTimer.current = setTimeout(() => poll(0), 2500);
-          return;
+          const res = await getSummary(activityId);
+          const summaryData = res?.summary || res?.data || res;
+          setSummary(summaryData);
+          return summaryData;
         } catch (genErr) {
-          setSummaryError(genErr.message);
-          setSummaryLoading(false);
-          return;
+          setSummaryError(genErr.message || "Failed to generate summary");
+          return null;
         }
       }
-      setSummaryError(err.message || 'Failed to fetch summary');
+      setSummaryError(err.message || "Failed to fetch summary");
+      return null;
+    } finally {
       setSummaryLoading(false);
     }
   }, []);
@@ -206,7 +200,7 @@ export const DashboardProvider = ({ children }) => {
 
     const poll = async (attempts = 0) => {
       if (attempts > 40) {
-        setQuizError('Quiz generation timed out. Please try again.');
+        setQuizError("Quiz generation timed out. Please try again.");
         setQuizLoading(false);
         return;
       }
@@ -215,11 +209,11 @@ export const DashboardProvider = ({ children }) => {
         const quizData = res.quiz || res.data || res;
         setQuiz(quizData);
 
-        if (quizData?.status === 'COMPLETED') {
+        if (quizData?.status === "COMPLETED") {
           setQuizLoading(false);
           clearQuizPoll();
-        } else if (quizData?.status === 'FAILED') {
-          setQuizError(quizData?.error || 'Quiz generation failed');
+        } else if (quizData?.status === "FAILED") {
+          setQuizError(quizData?.error || "Quiz generation failed");
           setQuizLoading(false);
           clearQuizPoll();
         } else {
@@ -236,11 +230,11 @@ export const DashboardProvider = ({ children }) => {
       let initialRes = await getQuiz(activityId);
       let quizData = initialRes.quiz || initialRes.data || initialRes;
 
-      if (!quizData || quizData.status === 'NOT_STARTED' || retry) {
+      if (!quizData || quizData.status === "NOT_STARTED" || retry) {
         await generateQuiz(activityId);
-        setQuiz({ status: 'PROCESSING', questions: [] });
+        setQuiz({ status: "PROCESSING", questions: [] });
         quizPollTimer.current = setTimeout(() => poll(0), 2500);
-      } else if (quizData.status === 'PROCESSING') {
+      } else if (quizData.status === "PROCESSING") {
         setQuiz(quizData);
         quizPollTimer.current = setTimeout(() => poll(0), 2500);
       } else {
@@ -251,7 +245,7 @@ export const DashboardProvider = ({ children }) => {
       if (err.status === 404) {
         try {
           await generateQuiz(activityId);
-          setQuiz({ status: 'PROCESSING', questions: [] });
+          setQuiz({ status: "PROCESSING", questions: [] });
           quizPollTimer.current = setTimeout(() => poll(0), 2500);
           return;
         } catch (genErr) {
@@ -260,22 +254,22 @@ export const DashboardProvider = ({ children }) => {
           return;
         }
       }
-      setQuizError(err.message || 'Failed to fetch quiz');
+      setQuizError(err.message || "Failed to fetch quiz");
       setQuizLoading(false);
     }
   }, []);
 
   // --- Submit Quiz ---
-  const submitQuizAttempt = async (activityId, submissionData) => {
+  const submitQuizAttempt = useCallback(async (activityId, submissionData) => {
     try {
       const res = await submitQuiz(activityId, submissionData);
-      toast.success('Quiz attempt submitted successfully!');
+      toast.success("Quiz attempt submitted successfully!");
       return res;
     } catch (err) {
-      toast.error(err.message || 'Failed to submit quiz attempt');
+      toast.error(err.message || "Failed to submit quiz attempt");
       throw err;
     }
-  };
+  }, []);
 
   const value = {
     selectedTrackId,
@@ -302,6 +296,7 @@ export const DashboardProvider = ({ children }) => {
     fetchTracks,
     createNewTrack,
     fetchTopics,
+    createNewTopic,
     fetchTimeline,
     fetchSummary,
     fetchQuiz,
@@ -310,13 +305,17 @@ export const DashboardProvider = ({ children }) => {
     clearQuizPoll,
   };
 
-  return <DashboardContext.Provider value={value}>{children}</DashboardContext.Provider>;
+  return (
+    <DashboardContext.Provider value={value}>
+      {children}
+    </DashboardContext.Provider>
+  );
 };
 
 export const useDashboard = () => {
   const context = useContext(DashboardContext);
   if (!context) {
-    throw new Error('useDashboard must be used within a DashboardProvider');
+    throw new Error("useDashboard must be used within a DashboardProvider");
   }
   return context;
 };
