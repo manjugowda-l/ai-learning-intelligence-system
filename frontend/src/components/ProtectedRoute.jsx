@@ -1,9 +1,16 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      toast.error('Please log in to access this page', { id: 'auth-redirect' });
+    }
+  }, [loading, isAuthenticated]);
 
   if (loading) {
     return (

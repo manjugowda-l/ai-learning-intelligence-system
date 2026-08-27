@@ -18,6 +18,13 @@ export async function getTopics(trackId) {
   return await apiFetch(`/api/dashboard/tracks/${trackId}/topics`, { method: 'GET' });
 }
 
+export async function createTopic(trackId, topicName) {
+  return await apiFetch(`/api/dashboard/tracks/${trackId}/topic`, {
+    method: 'POST',
+    body: JSON.stringify({ topicName }),
+  });
+}
+
 export async function getTimeline(topicId) {
   return await apiFetch(`/api/dashboard/topics/${topicId}/timeline`, { method: 'GET' });
 }

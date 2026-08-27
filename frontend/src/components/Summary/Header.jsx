@@ -1,6 +1,16 @@
 import { Calendar, Clock, Tag, BookOpen } from "lucide-react";
 
-export default function Header({ topicName }) {
+export default function Header({ topicName = "Activity", date, readTime = "5 min read", title }) {
+  const formattedDate = date
+    ? new Date(date).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "Recently";
+
+  const displayHeading = title || (topicName ? `${topicName} Summary` : "Activity Summary");
+
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-10 mb-6 shadow-sm">
       <div className="flex items-center gap-3 mb-5">
@@ -10,7 +20,7 @@ export default function Header({ topicName }) {
 
         <div>
           <h1 className="text-[26px] font-bold text-gray-900">
-            {topicName} Fundamentals
+            {displayHeading}
           </h1>
 
           <p className="text-sm text-gray-500">
@@ -23,14 +33,14 @@ export default function Header({ topicName }) {
         <div className="flex items-center gap-2">
           <Calendar size={13} className="text-gray-400" />
           <span className="text-sm text-gray-500">
-            June 15, 2026
+            {formattedDate}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
           <Clock size={13} className="text-gray-400" />
           <span className="text-sm text-gray-500">
-            8 min read
+            {readTime}
           </span>
         </div>
 
