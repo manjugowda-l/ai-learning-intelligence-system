@@ -214,7 +214,6 @@ The extension currently tracks learning activity from:
 The extension can be extended to support additional websites by adding platform-specific activity detection and session-handling logic.
 
 ---
-
 ## 📸 Working Prototype
 
 ### Extension Connection — Before & After
