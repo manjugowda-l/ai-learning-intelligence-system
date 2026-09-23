@@ -216,21 +216,39 @@ The extension can be extended to support additional websites by adding platform-
 ---
 ## 📸 Working Prototype
 
+### Login
+
+The application provides an authentication-based entry point for users.
+
+![Login](screenshots/login.png)
+
 ### Extension Connection — Before & After
 
-The following screenshot shows the extension connection flow, from the initial installation state to a successfully connected extension with active tracking.
+The dashboard provides a step-by-step flow for installing and connecting the Chrome Extension. After connection, automatic activity tracking becomes active.
 
 ![Extension Connection - Before and After](screenshots/extension-connection.png)
 
 ### Activity Tracking
 
-Once connected, the Chrome Extension automatically detects learning activity on supported websites and sends the activity to the backend for processing.
+The Chrome Extension detects learning activity from supported websites and sends the recorded activity to the backend.
 
 ![Activity Tracking](screenshots/activity-tracking.png)
 
+### Extension Activity Console
+
+The extension's service worker shows the detected learning session and synchronization process.
+
+![Extension Console](screenshots/extension-console.png)
+
+### Dashboard
+
+The dashboard displays the user's tracked learning activities and processed learning information.
+
+![Dashboard](screenshots/dashboard.png)
+
 ### AI Summary
 
-The system processes the captured learning activity and generates an AI-based summary.
+Captured learning activity can be processed to generate an AI-based summary.
 
 ![AI Summary](screenshots/summary.png)
 
@@ -240,6 +258,15 @@ The processed learning content can also be used to generate quiz questions for k
 
 ![AI Quiz](screenshots/quiz.png)
 
+---
+
+## 🎥 Project Demo
+
+A complete working demonstration follows the flow:
+
+**Login → Connect Extension → Open Learning Platform → Track Activity → Dashboard → AI Summary → AI Quiz**
+
+[▶️ Watch the complete project demonstration](YOUR_VIDEO_LINK_HERE)
 ---
 
 ## 🎥 Project Demo
