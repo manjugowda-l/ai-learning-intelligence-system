@@ -217,21 +217,39 @@ The extension can be extended to support additional websites by adding platform-
 
 ## 📸 Working Prototype
 
-### Login
+### Extension Connection — Before & After
 
-![Login](screenshots/login.png)
+The following screenshot shows the extension connection flow, from the initial installation state to a successfully connected extension with active tracking.
 
-### Extension Connection
-
-![Extension Connection](screenshots/extension.png)
+![Extension Connection - Before and After](screenshots/extension-connection.png)
 
 ### Activity Tracking
 
-![Activity Tracking](screenshots/activity.png)
+Once connected, the Chrome Extension automatically detects learning activity on supported websites and sends the activity to the backend for processing.
 
-### Dashboard
+![Activity Tracking](screenshots/activity-tracking.png)
 
-![Dashboard](screenshots/dashboard.png)
+### AI Summary
+
+The system processes the captured learning activity and generates an AI-based summary.
+
+![AI Summary](screenshots/summary.png)
+
+### AI Quiz
+
+The processed learning content can also be used to generate quiz questions for knowledge verification.
+
+![AI Quiz](screenshots/quiz.png)
+
+---
+
+## 🎥 Project Demo
+
+A complete working demonstration of the system is available below:
+
+**Login → Connect Extension → Open Learning Platform → Track Activity → Dashboard → AI Summary → Quiz**
+
+[▶️ Watch the complete project demonstration](YOUR_VIDEO_LINK_HERE)
 
 ---
 
