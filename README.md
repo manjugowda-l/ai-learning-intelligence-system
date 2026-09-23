@@ -260,14 +260,6 @@ The processed learning content can also be used to generate quiz questions for k
 
 ---
 
-## 🎥 Project Demo
-
-A complete working demonstration follows the flow:
-
-**Login → Connect Extension → Open Learning Platform → Track Activity → Dashboard → AI Summary → AI Quiz**
-
-[▶️ Watch the complete project demonstration](YOUR_VIDEO_LINK_HERE)
----
 
 ## 🎥 Project Demo
 
