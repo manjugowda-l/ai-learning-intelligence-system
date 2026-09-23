@@ -1,19 +1,257 @@
+# 🧠 AI Learning Intelligence System
 
-MANJU L@LAPTOP-QEQ3T0SS MINGW64 /c/ai_projects/ai-learning-intelligence-system (main)
-$ git commit -m "Readme Updated"
-[main 36650c7] Readme Updated
- 1 file changed, 255 insertions(+), 4 deletions(-)
+An AI-powered learning platform that automatically tracks learning activities across different websites using a Chrome Extension and processes them through AI services.
 
-MANJU L@LAPTOP-QEQ3T0SS MINGW64 /c/ai_projects/ai-learning-intelligence-system (main)
-$ git push origin main
-To https://github.com/manjugowda-l/ai-learning-intelligence-system.git
- ! [rejected]        main -> main (fetch first)
-error: failed to push some refs to 'https://github.com/manjugowda-l/ai-learning-intelligence-system.git'
-hint: Updates were rejected because the remote contains work that you do not
-hint: have locally. This is usually caused by another repository pushing to
-hint: the same ref. If you want to integratethe remote changes, use
-hint: 'git pull' before pushing again.
-hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+## 🚀 Overview
 
-MANJU L@LAPTOP-QEQ3T0SS MINGW64 /c/ai_projects/ai-learning-intelligence-system (main)
-$ 
+The system consists of:
+
+- **Frontend** – User dashboard and authentication
+- **Backend** – REST APIs, authentication and activity management
+- **Chrome Extension** – Tracks learning activity from supported websites
+- **AI Service Layer** – Processes learning activity using AI
+- **Processing Service** – Handles asynchronous AI processing using Celery, Redis and Docker
+- **MongoDB** – Stores users and learning activities
+
+---
+
+## 🏗️ Architecture
+
+```text
+                    ┌──────────────────┐
+                    │      User        │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │    Frontend      │
+                    │  React / Vite    │
+                    └────────┬─────────┘
+                             │
+                       Login / JWT
+                             │
+                             ▼
+                 ┌───────────────────────┐
+                 │   Chrome Extension   │
+                 │                       │
+                 │ Activity Tracking     │
+                 │ Session Management    │
+                 └───────────┬───────────┘
+                             │
+                      Learning Event
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │     Backend      │
+                    │ Node / Express   │
+                    └───────┬──────────┘
+                            │
+              ┌─────────────┴─────────────┐
+              ▼                           ▼
+       ┌─────────────┐            ┌──────────────┐
+       │   MongoDB   │            │ AI Processing│
+       │             │            │ Celery/Redis │
+       └─────────────┘            └───────┬──────┘
+                                          │
+                                          ▼
+                                  ┌──────────────┐
+                                  │ AI Results   │
+                                  └──────┬───────┘
+                                         │
+                                         ▼
+                                  ┌──────────────┐
+                                  │  Dashboard   │
+                                  └──────────────┘
+```
+
+---
+
+## ⚙️ Local Setup
+
+### Prerequisites
+
+- Node.js
+- Python 3.14
+- Docker Desktop
+- MongoDB
+- Redis
+- Google Chrome
+- `uv`
+
+Clone the repository:
+
+```bash
+git clone <YOUR_GITHUB_REPOSITORY_URL>
+cd ai-learning-intelligence-system
+```
+
+---
+
+## ▶️ Run the Project
+
+The complete system runs using **5 terminals**.
+
+### Terminal 1 — Backend
+
+```bash
+cd /c/ai_projects/ai-learning-intelligence-system/backend
+npm start
+```
+
+Backend:
+
+```text
+http://localhost:5000
+```
+
+---
+
+### Terminal 2 — Processing Service
+
+Make sure Docker Desktop is running.
+
+```bash
+cd /c/ai_projects/ai-learning-intelligence-system/processing-ai-service
+docker compose up
+```
+
+---
+
+### Terminal 3 — AI Service
+
+```bash
+cd /c/ai_projects/ai-learning-intelligence-system/ai-service-layer
+py -3.14 -m uv run uvicorn main:app --reload --port 5001 --log-level debug
+```
+
+---
+
+### Terminal 4 — Summary / Quiz Worker
+
+```bash
+cd /c/ai_projects/ai-learning-intelligence-system/ai-service-layer
+py -3.14 -m uv run celery -A src.queueData.tasks:app worker -P solo --loglevel=INFO -Q celery
+```
+
+---
+
+### Terminal 5 — Frontend
+
+```bash
+cd /c/ai_projects/ai-learning-intelligence-system/frontend
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:5173
+```
+
+---
+
+## 🧩 Chrome Extension Setup
+
+1. Open:
+
+```text
+chrome://extensions
+```
+
+2. Enable **Developer Mode**.
+
+3. Click **Load unpacked**.
+
+4. Select:
+
+```text
+browser-extension/
+```
+
+5. Open the AILIS dashboard.
+
+6. Login and click **Connect Extension**.
+
+The authentication token is securely stored in the extension and is used when sending learning activities to the backend.
+
+---
+
+## 🔄 How It Works
+
+```text
+Login
+  ↓
+Connect Chrome Extension
+  ↓
+Open a supported learning website
+  ↓
+Extension detects learning activity
+  ↓
+Learning session is recorded
+  ↓
+Activity is sent to Backend
+  ↓
+Backend stores the activity
+  ↓
+AI Processing
+  ↓
+Processed information appears on Dashboard
+```
+
+---
+
+## 🌐 Currently Supported Websites
+
+The extension currently tracks learning activity from:
+
+- YouTube
+- LeetCode
+- ChatGPT
+- GeeksforGeeks
+- MDN
+- W3Schools
+
+The extension can be extended to support additional websites by adding platform-specific activity detection and session-handling logic.
+
+---
+
+## 📸 Working Prototype
+
+### Login
+
+![Login](screenshots/login.png)
+
+### Extension Connection
+
+![Extension Connection](screenshots/extension.png)
+
+### Activity Tracking
+
+![Activity Tracking](screenshots/activity.png)
+
+### Dashboard
+
+![Dashboard](screenshots/dashboard.png)
+
+---
+
+## 🔮 Future Extensions
+
+The system can be extended with:
+
+- More learning platforms
+- Additional AI learning features
+- Advanced learning analytics
+- Personalized learning recommendations
+- Cloud deployment
+- Chrome Web Store distribution
+
+---
+
+## 👥 Project
+
+**AI Learning Intelligence System**
+
+Built as a collaborative project combining:
+
+**Browser Extension + Web Application + Backend + AI + Cloud/Containerized Services**
