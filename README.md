@@ -32,7 +32,7 @@ The system consists of:
                              │
                              ▼
                  ┌───────────────────────┐
-                 │   Chrome Extension   │
+                 │   Chrome Extension    │
                  │                       │
                  │ Activity Tracking     │
                  │ Session Management    │
@@ -81,7 +81,7 @@ The system consists of:
 Clone the repository:
 
 ```bash
-git clone <YOUR_GITHUB_REPOSITORY_URL>
+git clone https://github.com/manjugowda-l/ai-learning-intelligence-system
 cd ai-learning-intelligence-system
 ```
 
