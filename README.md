@@ -210,6 +210,7 @@ The extension currently tracks learning activity from:
 - GeeksforGeeks
 - MDN
 - W3Schools
+- General
 
 The extension can be extended to support additional websites by adding platform-specific activity detection and session-handling logic.
 
@@ -267,7 +268,7 @@ A complete working demonstration of the system is available below:
 
 **Login → Connect Extension → Open Learning Platform → Track Activity → Dashboard → AI Summary → Quiz**
 
-[▶️ Watch the complete project demonstration](YOUR_VIDEO_LINK_HERE)
+[▶️ Watch the complete project demonstration](https://youtu.be/NZyQOrWVJKU)
 
 ---
 
